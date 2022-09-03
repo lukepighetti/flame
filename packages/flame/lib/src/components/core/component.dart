@@ -152,7 +152,7 @@ class Component {
   ///        now [_startLoading];
   ///      - otherwise do nothing: need to wait until the component finishes
   ///        loading.
-  ///  - During [_mount]ing, we perform the following sequence:
+  ///  - During [internalMount]ing, we perform the following sequence:
   ///      - first check whether we need to run [onGameResize] -- this could
   ///        happen if mounting a component that was  added to the game earlier
   ///        and then removed;
@@ -525,17 +525,30 @@ class Component {
 
   /// Adds this component as a child of [parent] (see [add] for details).
   Future<void>? addToParent(Component parent) {
-    assert(
-      _parent == null,
-      '$this cannot be added to $parent because it already has a parent: '
-      '$_parent',
-    );
-    _parent = parent;
-    parent.lifecycle._children.add(this);
-    if (!isLoaded && (parent.findGame()?.hasLayout ?? false)) {
-      return _startLoading();
+    final game = parent.findGame();
+    if (game == null) {
+      throw UnsupportedError('Cannot add $this while game is not available');
+    } else {
+      final root = game.fcsRoot;
+      assert(root != null, 'The game does not support Flame Component System');
+      root!.enqueueAdd(this, parent);
+      if (!isLoaded && game.hasLayout) {
+        _parent = parent;
+        return _startLoading();
+      }
+      return null;
     }
-    return null;
+    // assert(
+    //   _parent == null,
+    //   '$this cannot be added to $parent because it already has a parent: '
+    //   '$_parent',
+    // );
+    // _parent = parent;
+    // parent.lifecycle._children.add(this);
+    // if (!isLoaded && (parent.findGame()?.hasLayout ?? false)) {
+    //   return _startLoading();
+    // }
+    // return null;
   }
 
   /// Removes a component from the component tree.
@@ -732,10 +745,10 @@ class Component {
   Future<void>? _startLoading() {
     assert(_state == _initial);
     assert(_parent != null);
-    assert(_parent!.findGame() != null);
-    assert(_parent!.findGame()!.hasLayout);
+    final game = _parent!.findGame()!;
+    assert(game.hasLayout);
     _setLoadingBit();
-    onGameResize(_parent!.findGame()!.canvasSize);
+    onGameResize(game.canvasSize);
     final onLoadFuture = onLoad();
     if (onLoadFuture == null) {
       _finishLoading();
@@ -758,7 +771,8 @@ class Component {
   /// and later re-mounted. For these components we need to run [onGameResize]
   /// (since they haven't passed through [add]), but we don't have to add them
   /// to the parent's children because they are already there.
-  void _mount({Component? parent, bool existingChild = false}) {
+  @internal
+  void internalMount({Component? parent, bool existingChild = false}) {
     _parent ??= parent;
     assert(_parent != null && _parent!.isMounted);
     assert(isLoaded);
@@ -780,7 +794,7 @@ class Component {
     }
     if (_children != null) {
       _children!.forEach(
-        (child) => child._mount(parent: this, existingChild: true),
+        (child) => child.internalMount(parent: this, existingChild: true),
       );
     }
     _lifecycleManager?.processQueues();
@@ -972,7 +986,7 @@ class _LifecycleManager {
       final child = _children.first;
       assert(child._parent!.isMounted);
       if (child.isLoaded) {
-        child._mount();
+        child.internalMount();
         _children.removeFirst();
       } else if (child.isLoading) {
         break;
@@ -997,7 +1011,7 @@ class _LifecycleManager {
       final child = _adoption.removeFirst();
       child.internalRemoveFromParent();
       child._parent = owner;
-      child._mount();
+      child.internalMount();
     }
   }
 }

@@ -13,11 +13,12 @@ class ComponentTreeRoot extends Component {
       : _queue = RecycledQueue(_LifecycleEvent.new);
 
   final RecycledQueue<_LifecycleEvent> _queue;
+  final Set<int> _blockedComponents = {};
 
   @internal
   void enqueueAdd(Component child, Component parent) {
     _queue.addLast()
-      // ..kind = _LifecycleEventKind.add
+      ..kind = _LifecycleEventKind.add
       ..child = child
       ..parent = parent;
   }
@@ -25,7 +26,7 @@ class ComponentTreeRoot extends Component {
   @internal
   void enqueueRemove(Component child) {
     _queue.addLast()
-      // ..kind = _LifecycleEventKind.remove
+      ..kind = _LifecycleEventKind.remove
       ..child = child
       ..parent = null;
   }
@@ -40,40 +41,58 @@ class ComponentTreeRoot extends Component {
 
   @internal
   void processLifecycleEvents() {
+    assert(_blockedComponents.isEmpty);
     while (_queue.isNotEmpty) {
       final event = _queue.first;
       final child = event.child!;
       final parent = event.parent;
-      if (parent == null) {
-        // The component should be removed
-        if (child.isLoading) {
-          // cannot remove right now
-          break;
-        } else {
-          child.internalRemoveFromParent();
-        }
+      if (_blockedComponents.contains(identityHashCode(child)) ||
+          _blockedComponents.contains(identityHashCode(parent))) {
+        continue;
       }
+      switch (event.kind) {
+        case _LifecycleEventKind.add:
+          if (parent!.isMounted && child.isLoaded) {
+            child.internalMount(parent: parent);
+          } else {
+            _blockedComponents.add(identityHashCode(child));
+            _blockedComponents.add(identityHashCode(parent));
+          }
+          break;
+        default:
+          throw UnsupportedError('Event ${event.kind} not supported');
+      }
+      // if (parent == null) {
+      //   // The component should be removed
+      //   if (child.isLoading) {
+      //     // cannot remove right now
+      //     break;
+      //   } else {
+      //     child.internalRemoveFromParent();
+      //   }
+      // }
       _queue.removeFirst();
     }
+    _blockedComponents.clear();
   }
 }
-//
-// enum _LifecycleEventKind {
-//   unknown,
-//   add,
-//   remove,
-//   reparent,
-//   rebalance,
-// }
+
+enum _LifecycleEventKind {
+  unknown,
+  add,
+  remove,
+  // reparent,
+  // rebalance,
+}
 
 class _LifecycleEvent extends Disposable {
-  // _LifecycleEventKind kind = _LifecycleEventKind.unknown;
+  _LifecycleEventKind kind = _LifecycleEventKind.unknown;
   Component? child;
   Component? parent;
 
   @override
   void dispose() {
-    // kind = _LifecycleEventKind.unknown;
+    kind = _LifecycleEventKind.unknown;
     child = null;
     parent = null;
   }
