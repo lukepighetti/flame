@@ -793,7 +793,8 @@ class Component {
     _setMountedBit();
   }
 
-  void _remove() {
+  @internal
+  void internalRemoveFromParent() {
     assert(_parent != null, 'Trying to remove a component with no parent');
     _parent!.children.remove(this);
     propagateToChildren(
@@ -985,7 +986,7 @@ class _LifecycleManager {
     while (_removals.isNotEmpty) {
       final component = _removals.removeFirst();
       if (component.isMounted) {
-        component._remove();
+        component.internalRemoveFromParent();
       }
       assert(!component.isMounted);
     }
@@ -994,7 +995,7 @@ class _LifecycleManager {
   void _processAdoptionQueue() {
     while (_adoption.isNotEmpty) {
       final child = _adoption.removeFirst();
-      child._remove();
+      child.internalRemoveFromParent();
       child._parent = owner;
       child._mount();
     }

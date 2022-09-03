@@ -1,6 +1,7 @@
 import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
 import 'package:flame/extensions.dart';
+import 'package:flame/src/components/core/component_tree_root.dart';
 import 'package:flame/src/flame.dart';
 import 'package:flame/src/game/game_render_box.dart';
 import 'package:flame/src/game/overlay_manager.dart';
@@ -201,6 +202,10 @@ abstract class Game {
   /// This can be overridden to add logic that requires the game
   /// not be on the flutter widget tree anymore.
   void onDetach() {}
+
+  /// The root component of the component tree, if the game uses a Flame
+  /// Component System, or `null` otherwise.
+  ComponentTreeRoot? get fcsRoot => null;
 
   /// Converts a global coordinate (i.e. w.r.t. the app itself) to a local
   /// coordinate (i.e. w.r.t. he game widget).
