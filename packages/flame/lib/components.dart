@@ -2,6 +2,7 @@
 export 'src/anchor.dart';
 export 'src/collisions/has_collision_detection.dart';
 export 'src/collisions/hitboxes/screen_hitbox.dart';
+export 'src/components/component_notifier.dart';
 export 'src/components/core/component.dart';
 export 'src/components/core/component_set.dart';
 export 'src/components/core/position_type.dart';
@@ -20,6 +21,7 @@ export 'src/components/mixins/has_game_ref.dart';
 export 'src/components/mixins/has_paint.dart';
 export 'src/components/mixins/hoverable.dart';
 export 'src/components/mixins/keyboard_handler.dart';
+export 'src/components/mixins/notifiable.dart';
 export 'src/components/mixins/parent_is_a.dart';
 export 'src/components/mixins/single_child_particle.dart';
 export 'src/components/mixins/tappable.dart';
