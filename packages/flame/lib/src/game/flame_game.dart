@@ -127,6 +127,8 @@ class FlameGame extends ComponentTreeRoot with Game {
       // Give chance to other futures to execute first
       await Future<void>.delayed(Duration.zero);
       repeat = false;
+      processLifecycleEvents();
+      repeat |= hasLifecycleEvents;
       descendants(includeSelf: true).forEach(
         (Component child) {
           child.processPendingLifecycleEvents();

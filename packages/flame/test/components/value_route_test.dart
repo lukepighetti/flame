@@ -9,13 +9,12 @@ void main() {
         initialRoute: '/',
         routes: {'/': Route(Component.new)},
       );
-      await tester.pumpWidget(
-        GameWidget(
-          game: FlameGame(children: [router]),
-        ),
-      );
+      final game = FlameGame(children: [router]);
+      await tester.pumpWidget(GameWidget(game: game));
       await tester.pump();
       await tester.pump();
+      await tester.pump(Duration.zero);
+      expect(router.isMounted, true);
       expect(router.currentRoute.name, '/');
 
       final future = router.pushAndWait(
@@ -46,6 +45,7 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
+      await tester.pump(Duration.zero);
       expect(router.currentRoute.name, '/');
 
       final future = router.pushAndWait(
@@ -87,6 +87,7 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
+      await tester.pump(Duration.zero);
       expect(router.currentRoute.name, '/');
 
       final customRoute = _CustomValueRoute<String>(

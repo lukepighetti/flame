@@ -72,7 +72,8 @@ class Component {
   Component({Iterable<Component>? children, int? priority})
       : _priority = priority ?? 0 {
     if (children != null) {
-      addAll(children);
+      this.children.addAll(children);
+      // addAll(children);
     }
   }
 
@@ -127,8 +128,8 @@ class Component {
   ///      by the user. When the user removes the component in this state, we
   ///      simply set the [_parent] to null and remove it from the parent's
   ///      queue of pending children.
-  ///  - When we [_startLoading] the component, we set the [_loading] bit,
-  ///    invoke the [onGameResize] callback, and then [onLoad] immediately
+  ///  - When we [internalStartLoading] the component, we set the [_loading]
+  ///    bit, invoke the [onGameResize] callback, and then [onLoad] immediately
   ///    afterwards. The onLoad will be either sync or async, in both cases we
   ///    arrange to turn on the [_loaded] bit at the end of [onLoad]'s run.
   ///  - At this point we're in an execution gap: either the async [onLoad] is
@@ -146,10 +147,9 @@ class Component {
   ///    processes own pending events queue, which only happens after the parent
   ///    gets mounted. For each component in its queue of pending children, the
   ///    following checks are performed:
-  ///      - if the component is already [_loaded], then it will now be
-  ///        [_mount]ed;
+  ///      - if the component is already [_loaded], then it will now be mounted;
   ///      - otherwise, if the component is not even [_loading], then it will
-  ///        now [_startLoading];
+  ///        now [internalStartLoading];
   ///      - otherwise do nothing: need to wait until the component finishes
   ///        loading.
   ///  - During [internalMount]ing, we perform the following sequence:
@@ -527,16 +527,17 @@ class Component {
   Future<void>? addToParent(Component parent) {
     final game = parent.findGame();
     if (game == null) {
-      throw UnsupportedError('Cannot add $this while game is not available');
+      // ComponentTreeRoot.globalEnqueueAdd(this, parent);
+      assert(parent._state == _initial);
+      parent.children.add(this);
     } else {
       final root = game.fcsRoot;
       assert(root != null, 'The game does not support Flame Component System');
       root!.enqueueAdd(this, parent);
       if (!isLoaded && game.hasLayout) {
         _parent = parent;
-        return _startLoading();
+        return internalStartLoading();
       }
-      return null;
     }
     // assert(
     //   _parent == null,
@@ -548,7 +549,7 @@ class Component {
     // if (!isLoaded && (parent.findGame()?.hasLayout ?? false)) {
     //   return _startLoading();
     // }
-    // return null;
+    return null;
   }
 
   /// Removes a component from the component tree.
@@ -751,12 +752,18 @@ class Component {
     });
   }
 
-  Future<void>? _startLoading() {
+  @internal
+  Future<void>? internalStartLoading({Component? parent}) {
+    _parent ??= parent;
     assert(_state == _initial);
     assert(_parent != null);
     final game = _parent!.findGame()!;
     assert(game.hasLayout);
     _setLoadingBit();
+    if (_children?.isNotEmpty ?? false) {
+      _children!.forEach((child) => game.fcsRoot!.enqueueAdd(child, this));
+      _children!.clear();
+    }
     onGameResize(game.canvasSize);
     final onLoadFuture = onLoad();
     if (onLoadFuture == null) {
@@ -1000,7 +1007,7 @@ class _LifecycleManager {
       } else if (child.isLoading) {
         break;
       } else {
-        child._startLoading();
+        child.internalStartLoading();
       }
     }
   }
@@ -1024,3 +1031,34 @@ class _LifecycleManager {
     }
   }
 }
+
+
+/// Component states:
+///
+/// INITIAL:
+///   This is the state of a newly-constructed component.
+///   A component in this state can be added to another component P, in which
+///   case it will immediately transition into one of two states:
+///     - LOADING, if the game is findable through P; and
+///     - PENDING_ADD otherwise.
+///
+/// LOADING:
+///   This is the state during which the component runs its [onGameResize] +
+///   [onLoad] methods.
+///   In this state, [_parent] is set to the component's future parent P,
+///   the game is findable (at least initially), and there is an ADD operation
+///   queued at the root.
+///   Loading is a potentially long-running async operation. It is possible that
+///   the component's parent or grandparent becomes unmounted in the meanwhile,
+///   in which case the game may stop being findable.
+///   The component in this state can be removed from its parent, or moved/added
+///   to another parent (provided that the game is still findable) by queuing
+///   the corresponding operation at the root. Otherwise such an operation
+///   produces an error.
+///
+/// PENDING_ADD:
+///   This is the state when we already know where the component will be mounted
+///   to, but the game is not findable yet, so we cannot start loading the
+///   component. In this state, the [_parent] property is set, and the component
+///   itself is stored in its parents [_children] list (even though it is not
+///   mounted).

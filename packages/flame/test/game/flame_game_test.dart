@@ -144,6 +144,7 @@ void main() {
 
           await tester.pumpWidget(GameWidget(game: game));
           game.update(0);
+          game.update(0);
           expect(game.children.length, 1);
           expect(game.children.first, component);
         },
