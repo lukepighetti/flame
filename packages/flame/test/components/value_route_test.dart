@@ -13,7 +13,7 @@ void main() {
       await tester.pumpWidget(GameWidget(game: game));
       await tester.pump();
       await tester.pump();
-      await tester.pump(Duration.zero);
+      await tester.pump();
       expect(router.isMounted, true);
       expect(router.currentRoute.name, '/');
 
@@ -45,7 +45,7 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
-      await tester.pump(Duration.zero);
+      await tester.pump();
       expect(router.currentRoute.name, '/');
 
       final future = router.pushAndWait(
@@ -87,7 +87,7 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
-      await tester.pump(Duration.zero);
+      await tester.pump();
       expect(router.currentRoute.name, '/');
 
       final customRoute = _CustomValueRoute<String>(

@@ -27,8 +27,7 @@ void main() {
         );
         await tester.pumpWidget(GameWidget(game: game));
         await tester.pump();
-        await tester.pump();
-        await tester.pump(Duration.zero);
+        await tester.pump(const Duration(milliseconds: 10));
         expect(game.children.length, 1);
 
         // regular tap
@@ -100,8 +99,6 @@ void main() {
         await tester.pumpWidget(GameWidget(game: game));
         await tester.pump();
         await tester.pump();
-        await tester.pump(Duration.zero);
-        await tester.pump(Duration.zero);
         expect(game.children.length, 1);
         expect(game.children.first.children.length, 1);
 

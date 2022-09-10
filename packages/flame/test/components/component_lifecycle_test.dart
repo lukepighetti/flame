@@ -49,18 +49,18 @@ class LifecycleComponent extends Component {
 
 void main() {
   group('Component Lifecycle', () {
-    testWithFlameGame('simple component add', (game) async {
+    flameGame.test('correct order', (game) async {
       final component = LifecycleComponent();
       await game.add(component);
       await game.ready();
 
       expect(
         component.events,
-        ['onGameResize [800.0,600.0]', 'onLoad', 'onMount'],
+        ['onGameResize [500.0,500.0]', 'onLoad', 'onMount'],
       );
     });
 
-    testWithFlameGame('Component.mounted completes', (game) async {
+    flameGame.test('component mounted completes', (game) async {
       final component = LifecycleComponent();
       final mounted = component.mounted;
       await game.add(component);
@@ -69,8 +69,8 @@ void main() {
       return expectLater(mounted, completes);
     });
 
-    testWithFlameGame(
-      'Component.mounted completes even after the '
+    flameGame.test(
+      'component mounted completes even after the '
       'component is already mounted',
       (game) async {
         final component = LifecycleComponent();
@@ -82,8 +82,8 @@ void main() {
       },
     );
 
-    testWithFlameGame(
-      'Component.mounted completes when changing parent',
+    flameGame.test(
+      'component mounted completes when changing parent',
       (game) async {
         final parent = LifecycleComponent('parent');
         final child = LifecycleComponent('child');
@@ -226,7 +226,7 @@ void main() {
       );
     });
 
-    testWithFlameGame(
+    flameGame.test(
       'components added in correct order even with different load times',
       (game) async {
         final a = SlowComponent(0.1);
